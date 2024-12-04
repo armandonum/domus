@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ESP IoT Firebase App</title>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/8.8.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.8.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.8.1/firebase-database.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script>
+    // Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyBDFZdxlkOawJiv4PNNctijEqsC0ZxzXC8",
+      authDomain: "casainteligente-b8266.firebaseapp.com",
+      databaseURL: "https://casainteligente-b8266-default-rtdb.firebaseio.com",
+      projectId: "casainteligente-b8266",
+      storageBucket: "casainteligente-b8266.appspot.com",
+      messagingSenderId: "407501351212",
+      appId: "1:407501351212:web:2bfe4fa4cc7119ec166489"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+
+    const auth = firebase.auth();
+    const db = firebase.database();
+    document.addEventListener("DOMContentLoaded", () => {
+      // Variables para actualizar los datos
+      const temperatureElement = document.getElementById("temperature");
+      const humidityElement = document.getElementById("humidity");
+
+      // Leer datos desde Firebase
+      db.ref("/sensors/temperatura").on("value", (snapshot) => {
+        const temp = snapshot.val();
+        temperatureElement.innerText = temp !== null ? temp + " °C" : "No disponible";
+      });
+
+      db.ref("/sensors/humedad").on("value", (snapshot) => {
+        const hum = snapshot.val();
+        humidityElement.innerText = hum !== null ? hum + " %" : "No disponible";
+      });
+    });
+
+    function toggleLight(room, button) {
+      const state = button.classList.contains("active") ? 0 : 1;
+      const updates = {};
+      updates[`/board1/outputs/digital/${room}`] = state;
+      db.ref().update(updates)
+        .then(() => {
+          button.classList.toggle("active", state === 1);
+          console.log(`${room} ${state === 1 ? "Encendido" : "Apagado"}`);
+        })
+        .catch(error => console.error("Error al actualizar luz:", error));
+    }
+
+    function toggleDoor(button) {
+      const state = button.classList.contains("active") ? 0 : 1;
+      const updates = { "/board1/outputs/digital/15": state };
+      db.ref().update(updates)
+        .then(() => {
+          button.classList.toggle("active", state === 1);
+          console.log(`Puerta ${state === 1 ? "Abierta" : "Cerrada"}`);
+        })
+        .catch(error => console.error("Error al actualizar puerta:", error));
+    }
+
+    function setupUI(user) {
+      const loginForm = document.getElementById("login-form");
+      const controls = document.getElementById("controls");
+      if (user) {
+        loginForm.style.display = "none";
+        controls.style.display = "block";
+        document.getElementById("user-email").innerText = user.email;
+      } else {
+        loginForm.style.display = "block";
+        controls.style.display = "none";
+      }
+    }
+
+    auth.onAuthStateChanged(user => {
+      setupUI(user);
+    });
+
+    function login() {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      auth.signInWithEmailAndPassword(email, password)
+        .catch(error => {
+          alert("Error: " + error.message);
+        });
+    }
+
+    function logout() {
+      auth.signOut();
+    }
+  </script>
+
+  <style>
+    html {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      text-align: center;
+      background-color: #4c9696;
+      color: #fff;
+    }
+
+    body {
+      margin: 0;
+    }
+
+    .topnav {
+      background-color: #536369;
+      color: #4caf50;
+      font-size: 1.5rem;
+      padding: 10px;
+    }
+
+    .content {
+      padding: 20px;
+    }
+
+    .login-form {
+      margin: 20px auto;
+      max-width: 300px;
+    }
+
+    .login-form input {
+      margin: 10px;
+      padding: 10px;
+      width: 100%;
+    }
+
+    .login-form button {
+      padding: 10px;
+      width: 100%;
+      background-color: #4caf50;
+      border: none;
+      color: white;
+      cursor: pointer;
+    }
+
+    .login-form button:hover {
+      background-color: #2e7d32;
+    }
+
+    .cards {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+    }
+
+    .card {
+      background-color: #71924b;
+      padding: 20px;
+      border-radius: 10px;
+      width: 100%;
+      max-width: 300px;
+    }
+
+    .toggle-button {
+      width: 100px;
+      height: 50px;
+      background: linear-gradient(to bottom, #a55252, #2e357c);
+      border-radius: 25px;
+      position: relative;
+      cursor: pointer;
+    }
+
+    .toggle-button::before {
+      content: "";
+      width: 40px;
+      height: 40px;
+      background: #4caf50;
+      border-radius: 50%;
+      position: absolute;
+      top: 5px;
+      left: 5px;
+      transition: all 0.3s ease;
+    }
+
+    .toggle-button.active {
+      background: linear-gradient(to bottom, #4caf50, #2e7d32);
+    }
+
+    .toggle-button.active::before {
+      left: 55px;
+    }
+
+    img {
+      max-width: 100%;
+      height: auto;
+      margin: 20px 0;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .cards {
+        flex-direction: column;
+      }
+
+      .toggle-button {
+        width: 80px;
+        height: 40px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="topnav">
+    <h1>ESP IoT Firebase App</h1>
+    <button id="logout-button" onclick="logout()">Cerrar Sesión</button>
+  </div>
+
+  <form id="login-form" class="login-form" style="display: none;">
+    <h2>Iniciar Sesión</h2>
+    <input id="email" type="email" placeholder="Correo Electrónico">
+    <input id="password" type="password" placeholder="Contraseña">
+    <button type="button" onclick="login()">Iniciar Sesión</button>
+  </form>
+
+  <div id="controls" style="display: none;">
+    <h2>Bienvenido, <span id="user-email"></span></h2>
+    <div class="cards">
+      <div class="card">
+        <h2>Temperatura (Jardín)</h2>
+        <p><span id="temperature">0</span> °C</p>
+      </div>
+      <div class="card">
+        <h2>Humedad (Jardín)</h2>
+        <p><span id="humidity">0</span> %</p>
+      </div>
+    </div>
+    <img src="./mapa.jpg" alt="Mapa de la casa">
+    <div class="led-controls">
+      <h2>Luces</h2>
+      <button class="toggle-button" onclick="toggleLight(12, this)">Habitación</button>
+      <button class="toggle-button" onclick="toggleLight(13, this)">Baño</button>
+      <button class="toggle-button" onclick="toggleLight(14, this)">Sala</button>
+      <button class="toggle-button" onclick="toggleLight(16, this)">Exterior</button>
+    </div>
+
+    <div class="door-controls">
+      <h2>Puerta</h2>
+      <button class="toggle-button" onclick="toggleDoor(this)">Abrir/Cerrar</button>
+    </div>
+  </div>
+</body>
+</html>
